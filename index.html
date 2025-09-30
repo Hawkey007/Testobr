@@ -36,9 +36,28 @@
     }
     .modes {
       display: flex;
-      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 15px;
+      align-items: center;
       margin-bottom: 15px;
-      gap: 20px;
+    }
+
+    .modes label {
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background-color: #1e1e1e;
+      padding: 8px 12px;
+      border-radius: 6px;
+      border: 1px solid #444;
+      cursor: pointer;
+    }
+    
+    .modes h2 {
+      width: 100%;
+      font-size: 18px;
+      margin-bottom: 5px;
     }
     .mode-section {
       flex: 1;
@@ -116,12 +135,13 @@
   <input type="file" id="fileInput" accept=".xlsx" style="display: none;" />
 
   <div class="modes">
-    <div class="mode-section">
-      <h2>Režim testu</h2>
-      <label><input type="radio" name="mode" value="infinite" checked onchange="switchMode('infinite')"> Nekonečný</label>
-      <label><input type="radio" name="mode" value="rated" onchange="switchMode('rated')"> Hodnocený</label>
-    </div>
-    <div class="mode-section">
+    <h2>Režimy:</h2>
+    <label><input type="radio" name="mode" value="infinite" checked onchange="switchMode('infinite')"> Nekonečný</label>
+    <label><input type="radio" name="mode" value="rated" onchange="switchMode('rated')"> Hodnocený</label>
+    <label><input type="radio" name="questionOrder" value="random" checked onchange="switchQuestionOrder('random')"> Náhodné</label>
+    <label><input type="radio" name="questionOrder" value="sequential" onchange="switchQuestionOrder('sequential')"> Za sebou</label>
+  </div>
+  <div class="mode-section">
       <h2>Režim otázek</h2>
       <label><input type="radio" name="questionOrder" value="random" checked onchange="switchQuestionOrder('random')"> Náhodné</label>
       <label><input type="radio" name="questionOrder" value="sequential" onchange="switchQuestionOrder('sequential')"> Za sebou</label>
@@ -320,3 +340,4 @@
   </script>
 </body>
 </html>
+
