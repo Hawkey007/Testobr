@@ -242,13 +242,9 @@
       const item = quiz[questionIndex];
       qText.innerText = item.question;
 
-      if (item.image && imageFiles.has(item.image)) {
-        const reader = new FileReader();
-        reader.onload = e => {
-          questionImage.src = e.target.result;
-          questionImage.style.display = 'block';
-        };
-        reader.readAsDataURL(imageFiles.get(item.image));
+      if (item.image) {
+        questionImage.src = 'obrazky/' + item.image + '.png';
+        questionImage.style.display = 'block';
       }
 
       item.options.forEach((option, index) => {
@@ -308,3 +304,4 @@
   </script>
 </body>
 </html>
+
