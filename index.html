@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>TestObr</title>
+  <title>Testomat s obrázky</title>
   <link rel="icon" href="favicon.png" type="image/png" />
   <script src="https://unpkg.com/read-excel-file@5.x/bundle/read-excel-file.min.js"></script>
   <style>
@@ -113,13 +113,13 @@
   </style>
 </head>
 <body>
-  <h1>TestObr</h1>
+  <h1>Testomat s obrázky</h1>
 
   <div class="top-bar">
-    <label for="folderInput" class="upload-btn">📁 Vybrat složku</label>
+    <label for="fileInput" class="upload-btn">📂 Vyberte Excel soubor (.xlsx)</label>
     <button id="resetBtn" onclick="resetAll()">🔄 Reset</button>
   </div>
-  <input type="file" id="folderInput" webkitdirectory directory multiple style="display: none;" />
+  <input type="file" id="fileInput" accept=".xlsx" style="display: none;" />
 
   <div class="modes">
     <div class="mode-section">
@@ -154,9 +154,8 @@
     let mode = 'infinite';
     let errorCount = 0;
     let questionOrderMode = 'random';
-    let imageFiles = new Map();
 
-    const folderInput = document.getElementById('folderInput');
+    const fileInput = document.getElementById('fileInput');
     const quizContainer = document.getElementById('quizContainer');
     const qText = document.getElementById('qText');
     const optionsDiv = document.getElementById('options');
@@ -165,23 +164,17 @@
     const errorCountDisplay = document.getElementById('errorCount');
     const questionImage = document.getElementById('questionImage');
 
-    folderInput.addEventListener('change', () => {
-      const files = Array.from(folderInput.files);
-      const excelFile = files.find(f => f.name.endsWith('.xlsx'));
-      if (!excelFile) {
-        alert('Excel soubor nenalezen ve vybrané složce.');
-        return;
-      }
+    function shuffleArray(array) {
+      return array.map(value => ({ value, sort: Math.random() }))
+                  .sort((a, b) => a.sort - b.sort)
+                  .map(({ value }) => value);
+    }
 
-      imageFiles.clear();
-      files.forEach(file => {
-        if (file.name.endsWith('.png')) {
-          const name = file.name.replace(/\.[^/.]+$/, "");
-          imageFiles.set(name, file);
-        }
-      });
+    fileInput.addEventListener('change', () => {
+      const file = fileInput.files[0];
+      if (!file) return;
 
-      readXlsxFile(excelFile).then(rows => {
+      readXlsxFile(file).then(rows => {
         quiz = rows.slice(1).map(r => ({
           question: r[0],
           image: r[1],
@@ -189,6 +182,10 @@
           correct: r[5] ? r[5].split(/[ ,]+/).map(s => s.trim().toUpperCase()) : [],
           attempts: 0
         }));
+
+        const selectedOrder = document.querySelector('input[name="questionOrder"]:checked').value;
+        questionOrderMode = selectedOrder;
+
         resetAll();
         quizContainer.style.display = '';
       });
@@ -219,12 +216,6 @@
       showQuestion();
     }
 
-    function shuffleArray(array) {
-      return array.map(value => ({ value, sort: Math.random() }))
-                  .sort((a, b) => a.sort - b.sort)
-                  .map(({ value }) => value);
-    }
-
     function showQuestion() {
       feedback.textContent = '';
       optionsDiv.innerHTML = '';
@@ -237,71 +228,62 @@
         return;
       }
 
-      const questionIndex = questionQueue.shift();
-      current = questionIndex;
-      const item = quiz[questionIndex];
+      current = questionQueue.shift();
+      const item = quiz[current];
       qText.innerText = item.question;
 
       if (item.image) {
-        questionImage.src = 'obrazky/' + item.image + '.png';
+        questionImage.src = `obrazky/${item.image}.png`;
         questionImage.style.display = 'block';
       }
 
-      item.options.forEach((option, index) => {
-        const div = document.createElement('div');
-        div.className = 'option';
-
-        const input = document.createElement('input');
-        input.type = 'checkbox';
-        input.value = String.fromCharCode(65 + index); // A, B, C
-
-        const label = document.createElement('label');
-        label.textContent = option;
-
-        div.appendChild(input);
-        div.appendChild(label);
-        optionsDiv.appendChild(div);
+      item.options.forEach((opt, idx) => {
+        const option = document.createElement('label');
+        option.className = 'option';
+        option.innerHTML = `
+          <input type="radio" name="option" value="${String.fromCharCode(65 + idx)}">
+          <span>${opt}</span>
+        `;
+        optionsDiv.appendChild(option);
       });
+    }
 
-      checkBtn.disabled = false;
+    function getDynamicDelay(isCorrect, correctAnswers) {
+      if (isCorrect) return 1000;
+      const correctText = correctAnswers.join(', ');
+      const length = correctText.length;
+      if (length <= 20) return 2000;
+      if (length <= 40) return 3000;
+      return 4000;
     }
 
     checkBtn.addEventListener('click', () => {
-      const inputs = optionsDiv.querySelectorAll('input');
-      const selected = Array.from(inputs).filter(i => i.checked).map(i => i.value);
+      const selected = document.querySelector('input[name="option"]:checked');
+      if (!selected) return;
+
+      const selectedValue = selected.value;
       const item = quiz[current];
-
-      const correct = item.correct.sort().join(',');
-      const answer = selected.sort().join(',');
-      const isCorrect = correct === answer;
-
-      let delay = 1000;
+      const isCorrect = item.correct.includes(selectedValue);
 
       if (isCorrect) {
-        feedback.textContent = '✅ Správně';
+        feedback.textContent = 'Správně!';
         feedback.className = 'feedback correct';
       } else {
-        const correctText = item.correct.map(letter => {
-          const index = letter.charCodeAt(0) - 65;
-          return item.options[index];
-        }).join(', ');
-
-        feedback.textContent = `❌ Špatně. Správně je: ${correctText}`;
+        feedback.textContent = `Špatně: Správně je ${item.correct.join(', ')}`;
         feedback.className = 'feedback incorrect';
-
-        const length = correctText.length;
-        if (length <= 20) delay = 2000;
-        else if (length <= 40) delay = 3000;
-        else delay = 4000;
-
         errorCount++;
         errorCountDisplay.textContent = errorCount;
       }
 
       checkBtn.disabled = true;
-      setTimeout(showQuestion, delay);
+
+      const delay = getDynamicDelay(isCorrect, item.correct);
+
+      setTimeout(() => {
+        checkBtn.disabled = false;
+        showQuestion();
+      }, delay);
     });
   </script>
 </body>
 </html>
-
