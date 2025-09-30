@@ -64,15 +64,12 @@
       font-weight: bold;
       margin: 20px 0 10px 0;
       min-height: 300px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: flex-start;
+      text-align: center;
     }
     .question img {
-      height: 100px;          /* Pevná výška */
-      width: auto;            /* Šířka dopočítaná podle poměru */
-      margin-top: 10px;
+      height: 190px;
+      width: auto;
+      margin-top: 4px; /* menší mezera */
       border-radius: 6px;
       box-shadow: 0 0 10px rgba(0,0,0,0.7);
     }
@@ -152,7 +149,6 @@
 
   <div id="quizContainer" style="display:none;">
     <div class="question" id="qText"></div>
-    <img id="questionImage" style="display:none;" alt="Obrázek k otázce" />
     <div id="options"></div>
     <div class="feedback" id="feedback"></div>
     <button id="checkBtn">Ověřit</button>
@@ -169,6 +165,9 @@
 
     const retryDelay = 2;
 
+    // složka s obrázky
+    const imageFolder = 'obrazky/';
+
     const fileInput = document.getElementById('fileInput');
     const quizContainer = document.getElementById('quizContainer');
     const qText = document.getElementById('qText');
@@ -176,7 +175,6 @@
     const checkBtn = document.getElementById('checkBtn');
     const feedback = document.getElementById('feedback');
     const errorCountDisplay = document.getElementById('errorCount');
-    const questionImage = document.getElementById('questionImage');
 
     function shuffleArray(array) {
       return array.map(value => ({ value, sort: Math.random() }))
@@ -189,10 +187,12 @@
       if (!file) return;
 
       readXlsxFile(file).then(rows => {
+        // Předpokládám, že Excel má tyto sloupce:
+        // A - otázka (text), B - název obrázku bez přípony, C, D, E - možnosti, F - správné odpovědi
         quiz = rows.slice(1).map(r => ({
-          questionText: r[0],
-          image: r[1], // bez přípony!
-          options: [r[2], r[3], r[4]].filter(Boolean),
+          questionText: r[0],         // text otázky
+          imageName: r[1],            // název obrázku bez přípony, např. "obrazek1"
+          options: [r[2], r[3], r[4]].filter(Boolean),  // možnosti (max 3)
           correct: r[5] ? r[5].split(/[ ,]+/).map(s => s.trim().toUpperCase()) : [],
           attempts: 0
         }));
@@ -233,8 +233,6 @@
     function showQuestion() {
       feedback.textContent = '';
       optionsDiv.innerHTML = '';
-      questionImage.style.display = 'none';
-      questionImage.src = '';
 
       if (quiz.length === 0 || questionQueue.length === 0) {
         qText.innerText = '🎉 Test dokončen!';
@@ -245,24 +243,23 @@
       const questionIndex = questionQueue.shift();
       const item = quiz[questionIndex];
 
-      qText.innerText = item.questionText;
+      // Sestavíme otázku jako text + obrázek (pokud je zadán)
+      let questionHtml = item.questionText || '';
 
-      if (item.image) {
-        const imageUrl = `obrazky/${encodeURIComponent(item.image)}.png`;
-        questionImage.src = imageUrl;
-        questionImage.style.display = 'block';
-
-        questionImage.onerror = () => {
-          console.error('Nepodařilo se načíst obrázek:', imageUrl);
-          questionImage.style.display = 'none';
-        };
+      if (item.imageName) {
+        // Přidáme .png příponu ke jménu obrázku
+        const imageUrl = imageFolder + encodeURIComponent(item.imageName) + '.png';
+        questionHtml += `<br><img src="${imageUrl}" alt="Obrázek k otázce" />`;
       }
+
+      qText.innerHTML = questionHtml;
 
       const labeledOptions = item.options.map((text, i) => ({
         label: String.fromCharCode(65 + i),
         text: text
       }));
 
+      // Zamícháme možnosti, aby nebyly pořád ve stejném pořadí
       const shuffled = shuffleArray(labeledOptions);
       item.shuffledOptions = shuffled;
 
@@ -313,6 +310,7 @@
           feedback.textContent = `❌ Špatně. Správná odpověď: ${correctTexts.join(', ')}`;
           feedback.className = 'feedback incorrect';
 
+          // V režimu nekonečného testu vrátíme otázku na pozici podle retryDelay
           if (mode === 'infinite') {
             const insertIndex = Math.min(retryDelay, questionQueue.length);
             questionQueue.splice(insertIndex, 0, questionIndex);
@@ -320,6 +318,7 @@
         }
 
         current++;
+
         const delay = getDynamicDelay(isCorrect, correctTexts);
         setTimeout(showQuestion, delay);
       };
@@ -336,7 +335,3 @@
   </script>
 </body>
 </html>
-
-
-
-
