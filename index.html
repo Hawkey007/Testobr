@@ -258,7 +258,7 @@
 
         const label = document.createElement('label');
         label.htmlFor = optionId;
-        label.innerText = `${checkbox.value}: ${optionText}`;
+        label.innerText = ` ${optionText}`; /*formát odpovedi, lze pridat ${checkbox.value}:*/
 
         optionWrapper.appendChild(checkbox);
         optionWrapper.appendChild(label);
@@ -296,11 +296,12 @@
           questionQueue.push(current);
         }
         showQuestion();
-      }, 1300);
+      }, 1500);
     });
   </script>
 </body>
 </html>
+
 
 
 
