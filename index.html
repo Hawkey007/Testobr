@@ -242,18 +242,27 @@
         text: opt
       }));
 
-      const randomized = shuffleArray(labeledOptions);
+      const shuffled = shuffleArray(labeledOptions);
+      item.shuffledOptions = shuffled;
 
-      randomized.forEach(opt => {
-        const option = document.createElement('label');
-        option.className = 'option';
-        option.innerHTML = `
-          <input type="radio" name="option" value="${opt.label}">
-          <span>${opt.text}</span>
-        `;
-        optionsDiv.appendChild(option);
+      shuffled.forEach((opt, idx) => {
+        const id = `option-${current}-${idx}`;
+        const wrapper = document.createElement('div');
+        wrapper.className = 'option';
+
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.value = opt.label;
+        checkbox.id = id;
+
+        const label = document.createElement('label');
+        label.setAttribute('for', id);
+        label.textContent = opt.text;
+
+        wrapper.appendChild(checkbox);
+        wrapper.appendChild(label);
+        optionsDiv.appendChild(wrapper);
       });
-    }
 
     function getDynamicDelay(correct, correctAnswers) {
       if (correct) return 1000;
@@ -291,18 +300,19 @@
           questionQueue.splice(insertIndex, 0, questionIndex);
         }
 
-      /*checkBtn.disabled = true;*/
+      checkBtn.disabled = true;
 
       const delay = getDynamicDelay(isCorrect, item.correct);
 
       setTimeout(() => {
-        /*checkBtn.disabled = false;*/
+        checkBtn.disabled = false;
         showQuestion();
       }, delay);
     });
   </script>
 </body>
 </html>
+
 
 
 
