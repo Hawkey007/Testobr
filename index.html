@@ -64,12 +64,11 @@
       font-weight: bold;
       margin: 20px 0 10px 0;
     }
-    #questionImage {
+    .question img {
       max-width: 100%;
       margin-top: 10px;
       border-radius: 6px;
       box-shadow: 0 0 10px rgba(0,0,0,0.7);
-      display: none;
     }
     .option {
       display: flex;
@@ -147,7 +146,7 @@
 
   <div id="quizContainer" style="display:none;">
     <div class="question" id="qText"></div>
-    <img id="questionImage" alt="Obrázek k otázce" />
+    <img id="questionImage" style="display:none;" alt="Obrázek k otázce" />
     <div id="options"></div>
     <div class="feedback" id="feedback"></div>
     <button id="checkBtn">Ověřit</button>
@@ -167,11 +166,11 @@
     const fileInput = document.getElementById('fileInput');
     const quizContainer = document.getElementById('quizContainer');
     const qText = document.getElementById('qText');
-    const questionImage = document.getElementById('questionImage');
     const optionsDiv = document.getElementById('options');
     const checkBtn = document.getElementById('checkBtn');
     const feedback = document.getElementById('feedback');
     const errorCountDisplay = document.getElementById('errorCount');
+    const questionImage = document.getElementById('questionImage');
 
     function shuffleArray(array) {
       return array.map(value => ({ value, sort: Math.random() }))
@@ -184,11 +183,9 @@
       if (!file) return;
 
       readXlsxFile(file).then(rows => {
-        // Excel má sloupce:
-        // A - otázka, B - název obrázku, C, D, E - možnosti, F - správné odpovědi
         quiz = rows.slice(1).map(r => ({
           questionText: r[0],
-          imageName: r[1],
+          image: r[1], // bez přípony!
           options: [r[2], r[3], r[4]].filter(Boolean),
           correct: r[5] ? r[5].split(/[ ,]+/).map(s => s.trim().toUpperCase()) : [],
           attempts: 0
@@ -230,26 +227,29 @@
     function showQuestion() {
       feedback.textContent = '';
       optionsDiv.innerHTML = '';
+      questionImage.style.display = 'none';
+      questionImage.src = '';
 
       if (quiz.length === 0 || questionQueue.length === 0) {
         qText.innerText = '🎉 Test dokončen!';
         checkBtn.disabled = true;
-        questionImage.style.display = 'none';
-        questionImage.src = '';
         return;
       }
 
       const questionIndex = questionQueue.shift();
       const item = quiz[questionIndex];
 
-      qText.textContent = item.questionText || '';
+      qText.innerText = item.questionText;
 
-      if (item.imageName) {
-        questionImage.src = `obrazky/${encodeURIComponent(item.imageName)}`;
+      if (item.image) {
+        const imageUrl = `obrazky/${encodeURIComponent(item.image)}.png`;
+        questionImage.src = imageUrl;
         questionImage.style.display = 'block';
-      } else {
-        questionImage.style.display = 'none';
-        questionImage.src = '';
+
+        questionImage.onerror = () => {
+          console.error('Nepodařilo se načíst obrázek:', imageUrl);
+          questionImage.style.display = 'none';
+        };
       }
 
       const labeledOptions = item.options.map((text, i) => ({
@@ -314,7 +314,6 @@
         }
 
         current++;
-
         const delay = getDynamicDelay(isCorrect, correctTexts);
         setTimeout(showQuestion, delay);
       };
