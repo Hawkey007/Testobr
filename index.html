@@ -273,15 +273,23 @@
       const isCorrect = item.correct.includes(selectedValue);
 
       if (isCorrect) {
-        feedback.textContent = 'Správně!';
-        feedback.className = 'feedback correct';
-      } else {
-        feedback.textContent = `❌ Špatně. Správná odpověď: ${correctTexts.join(', ')}`;
-        /*feedback.textContent = `Špatně: Správně je ${item.correct.join(', ')}`;*/
-        feedback.className = 'feedback incorrect';
-        errorCount++;
-        errorCountDisplay.textContent = errorCount;
-      }
+          feedback.textContent = '✅ Správně!';
+          feedback.className = 'feedback correct';
+        } else {
+          errorCount++;
+          errorCountDisplay.textContent = errorCount;
+
+          const correctTexts = item.shuffledOptions
+            .filter(opt => correct.includes(opt.label))
+            .map(opt => opt.text);
+
+          feedback.textContent = `❌ Špatně. Správná odpověď: ${correctTexts.join(', ')}`;
+          feedback.className = 'feedback incorrect';
+
+          // 🛠️ Zařadit otázku znovu do fronty po "retryDelay" otázkách
+          const insertIndex = Math.min(retryDelay, questionQueue.length);
+          questionQueue.splice(insertIndex, 0, questionIndex);
+        }
 
       checkBtn.disabled = true;
 
@@ -295,4 +303,5 @@
   </script>
 </body>
 </html>
+
 
