@@ -155,6 +155,8 @@
     let errorCount = 0;
     let questionOrderMode = 'random';
 
+    const retryDelay = 2;
+
     const fileInput = document.getElementById('fileInput');
     const quizContainer = document.getElementById('quizContainer');
     const qText = document.getElementById('qText');
@@ -165,9 +167,10 @@
     const questionImage = document.getElementById('questionImage');
 
     function shuffleArray(array) {
-      return array.map(value => ({ value, sort: Math.random() }))
-                  .sort((a, b) => a.sort - b.sort)
-                  .map(({ value }) => value);
+      return array
+        .map(value => ({ value, sort: Math.random() }))
+        .sort((a, b) => a.sort - b.sort)
+        .map(({ value }) => value);
     }
 
     fileInput.addEventListener('change', () => {
@@ -263,6 +266,7 @@
         wrapper.appendChild(label);
         optionsDiv.appendChild(wrapper);
       });
+    }
 
     function getDynamicDelay(correct, correctAnswers) {
       if (correct) return 1000;
@@ -274,35 +278,36 @@
     }
 
     checkBtn.addEventListener('click', () => {
-      const selected = document.querySelector('input[name="option"]:checked');
-      if (!selected) return;
+      const selected = Array.from(optionsDiv.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value);
+      if (selected.length === 0) return;
 
-      const selectedValue = selected.value;
       const item = quiz[current];
-      const isCorrect = item.correct.includes(selectedValue);
+      const isCorrect = selected.length === item.correct.length &&
+                        selected.every(val => item.correct.includes(val));
 
       if (isCorrect) {
-          feedback.textContent = '✅ Správně!';
-          feedback.className = 'feedback correct';
-        } else {
-          errorCount++;
-          errorCountDisplay.textContent = errorCount;
+        feedback.textContent = '✅ Správně!';
+        feedback.className = 'feedback correct';
+      } else {
+        errorCount++;
+        errorCountDisplay.textContent = errorCount;
 
-          const correctTexts = item.shuffledOptions
-            .filter(opt => correct.includes(opt.label))
-            .map(opt => opt.text);
+        const correctTexts = item.shuffledOptions
+          .filter(opt => item.correct.includes(opt.label))
+          .map(opt => opt.text);
 
-          feedback.textContent = `❌ Špatně. Správná odpověď: ${correctTexts.join(', ')}`;
-          feedback.className = 'feedback incorrect';
+        feedback.textContent = `❌ Špatně. Správná odpověď: ${correctTexts.join(', ')}`;
+        feedback.className = 'feedback incorrect';
 
-          // 🛠️ Zařadit otázku znovu do fronty po "retryDelay" otázkách
-          const insertIndex = Math.min(retryDelay, questionQueue.length);
-          questionQueue.splice(insertIndex, 0, questionIndex);
-        }
+        const insertIndex = Math.min(retryDelay, questionQueue.length);
+        questionQueue.splice(insertIndex, 0, current);
+      }
 
       checkBtn.disabled = true;
 
-      const delay = getDynamicDelay(isCorrect, item.correct);
+      const delay = getDynamicDelay(isCorrect, item.correct.map(l => {
+        return item.shuffledOptions.find(opt => opt.label === l)?.text || '';
+      }));
 
       setTimeout(() => {
         checkBtn.disabled = false;
@@ -312,10 +317,3 @@
   </script>
 </body>
 </html>
-
-
-
-
-
-
-
