@@ -64,11 +64,12 @@
       font-weight: bold;
       margin: 20px 0 10px 0;
     }
-    .question img {
+    #questionImage {
       max-width: 100%;
       margin-top: 10px;
       border-radius: 6px;
       box-shadow: 0 0 10px rgba(0,0,0,0.7);
+      display: none;
     }
     .option {
       display: flex;
@@ -146,6 +147,7 @@
 
   <div id="quizContainer" style="display:none;">
     <div class="question" id="qText"></div>
+    <img id="questionImage" alt="Obrázek k otázce" />
     <div id="options"></div>
     <div class="feedback" id="feedback"></div>
     <button id="checkBtn">Ověřit</button>
@@ -162,12 +164,10 @@
 
     const retryDelay = 2;
 
-    // složka s obrázky
-    const githubImageBaseUrl = 'https://github.com/Hawkey007/Testobr/tree/main/obrazky';
-
     const fileInput = document.getElementById('fileInput');
     const quizContainer = document.getElementById('quizContainer');
     const qText = document.getElementById('qText');
+    const questionImage = document.getElementById('questionImage');
     const optionsDiv = document.getElementById('options');
     const checkBtn = document.getElementById('checkBtn');
     const feedback = document.getElementById('feedback');
@@ -184,12 +184,12 @@
       if (!file) return;
 
       readXlsxFile(file).then(rows => {
-        // Předpokládám, že Excel má tyto sloupce:
-        // A - otázka (text), B - název obrázku, C, D, E - možnosti, F - správné odpovědi
+        // Excel má sloupce:
+        // A - otázka, B - název obrázku, C, D, E - možnosti, F - správné odpovědi
         quiz = rows.slice(1).map(r => ({
-          questionText: r[0],         // text otázky
-          imageName: r[1],            // název obrázku, např. "obrazek1.jpg"
-          options: [r[2], r[3], r[4]].filter(Boolean),  // možnosti (max 3)
+          questionText: r[0],
+          imageName: r[1],
+          options: [r[2], r[3], r[4]].filter(Boolean),
           correct: r[5] ? r[5].split(/[ ,]+/).map(s => s.trim().toUpperCase()) : [],
           attempts: 0
         }));
@@ -234,28 +234,29 @@
       if (quiz.length === 0 || questionQueue.length === 0) {
         qText.innerText = '🎉 Test dokončen!';
         checkBtn.disabled = true;
+        questionImage.style.display = 'none';
+        questionImage.src = '';
         return;
       }
 
       const questionIndex = questionQueue.shift();
       const item = quiz[questionIndex];
 
-      // Sestavíme otázku jako text + obrázek (pokud je zadán)
-      let questionHtml = item.questionText || '';
+      qText.textContent = item.questionText || '';
 
       if (item.imageName) {
-        const imageUrl = githubImageBaseUrl + encodeURIComponent(item.imageName);
-        questionHtml += `<br><img src="${imageUrl}" alt="Obrázek k otázce" />`;
+        questionImage.src = `obrazky/${encodeURIComponent(item.imageName)}`;
+        questionImage.style.display = 'block';
+      } else {
+        questionImage.style.display = 'none';
+        questionImage.src = '';
       }
-
-      qText.innerHTML = questionHtml;
 
       const labeledOptions = item.options.map((text, i) => ({
         label: String.fromCharCode(65 + i),
         text: text
       }));
 
-      // Zamícháme možnosti, aby nebyly pořád ve stejném pořadí
       const shuffled = shuffleArray(labeledOptions);
       item.shuffledOptions = shuffled;
 
@@ -306,7 +307,6 @@
           feedback.textContent = `❌ Špatně. Správná odpověď: ${correctTexts.join(', ')}`;
           feedback.className = 'feedback incorrect';
 
-          // V režimu nekonečného testu vrátíme otázku na pozici podle retryDelay
           if (mode === 'infinite') {
             const insertIndex = Math.min(retryDelay, questionQueue.length);
             questionQueue.splice(insertIndex, 0, questionIndex);
@@ -331,6 +331,3 @@
   </script>
 </body>
 </html>
-
-
-
