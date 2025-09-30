@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>TestObr</title>
+  <title>Testomat</title>
   <link rel="icon" href="favicon.png" type="image/png" />
   <script src="https://unpkg.com/read-excel-file@5.x/bundle/read-excel-file.min.js"></script>
   <style>
@@ -57,17 +57,6 @@
       font-weight: bold;
       margin: 20px 0 10px 0;
     }
-    #imageContainer {
-      text-align: center;
-      margin-bottom: 20px;
-    }
-    #imageContainer img {
-      width: 200px;
-      height: 200px;
-      object-fit: contain;
-      border-radius: 8px;
-      border: 1px solid #333;
-    }
     .option {
       display: flex;
       align-items: center;
@@ -113,10 +102,10 @@
   </style>
 </head>
 <body>
-  <h1>TestObr</h1>
+  <h1>Testomat</h1>
 
   <div class="top-bar">
-    <label for="fileInput" class="upload-btn">📂 Vyberte Excel soubor (.xlsx)</label>
+    <label for="fileInput" class="upload-btn">📂 Vybrat soubor</label>
     <button id="resetBtn" onclick="resetAll()">🔄 Reset</button>
   </div>
   <input type="file" id="fileInput" accept=".xlsx" style="display: none;" />
@@ -140,7 +129,6 @@
 
   <div id="quizContainer" style="display:none;">
     <div class="question" id="qText"></div>
-    <div id="imageContainer"><img id="questionImage" src="" alt="Ilustrační obrázek" style="display:none;"></div>
     <div id="options"></div>
     <div class="feedback" id="feedback"></div>
     <button id="checkBtn">Ověřit</button>
@@ -155,7 +143,7 @@
     let errorCount = 0;
     let questionOrderMode = 'random';
 
-    const retryDelay = 2;
+    const retryDelay = 2; // Po kolika otázkách se má chyba znovu objevit
 
     const fileInput = document.getElementById('fileInput');
     const quizContainer = document.getElementById('quizContainer');
@@ -164,7 +152,6 @@
     const checkBtn = document.getElementById('checkBtn');
     const feedback = document.getElementById('feedback');
     const errorCountDisplay = document.getElementById('errorCount');
-    const questionImage = document.getElementById('questionImage');
 
     function shuffleArray(array) {
       return array
@@ -180,14 +167,12 @@
       readXlsxFile(file).then(rows => {
         quiz = rows.slice(1).map(r => ({
           question: r[0],
-          image: r[1],
-          options: [r[2], r[3], r[4]].filter(Boolean),
-          correct: r[5] ? r[5].split(/[ ,]+/).map(s => s.trim().toUpperCase()) : [],
+          options: [r[1], r[2], r[3]].filter(Boolean),
+          correct: r[4] ? r[4].split(/[ ,]+/).map(s => s.trim().toUpperCase()) : [],
           attempts: 0
         }));
 
-        const selectedOrder = document.querySelector('input[name="questionOrder"]:checked').value;
-        questionOrderMode = selectedOrder;
+        questionOrderMode = document.querySelector('input[name="questionOrder"]:checked').value;
 
         resetAll();
         quizContainer.style.display = '';
@@ -222,8 +207,6 @@
     function showQuestion() {
       feedback.textContent = '';
       optionsDiv.innerHTML = '';
-      questionImage.style.display = 'none';
-      questionImage.src = '';
 
       if (quiz.length === 0 || questionQueue.length === 0) {
         qText.innerText = '🎉 Test dokončen!';
@@ -231,18 +214,13 @@
         return;
       }
 
-      current = questionQueue.shift();
-      const item = quiz[current];
+      const questionIndex = questionQueue.shift();
+      const item = quiz[questionIndex];
       qText.innerText = item.question;
 
-      if (item.image) {
-        questionImage.src = `obrazky/${item.image}.png`;
-        questionImage.style.display = 'block';
-      }
-
-      const labeledOptions = item.options.map((opt, idx) => ({
-        label: String.fromCharCode(65 + idx),
-        text: opt
+      const labeledOptions = item.options.map((text, i) => ({
+        label: String.fromCharCode(65 + i),
+        text: text
       }));
 
       const shuffled = shuffleArray(labeledOptions);
@@ -266,54 +244,58 @@
         wrapper.appendChild(label);
         optionsDiv.appendChild(wrapper);
       });
+
+      checkBtn.disabled = false;
+
+      checkBtn.onclick = () => {
+        checkBtn.disabled = true;
+
+        const selected = Array.from(optionsDiv.querySelectorAll('input:checked')).map(cb => cb.value);
+        const correct = item.correct;
+
+        const isCorrect = selected.length === correct.length &&
+                          selected.every(val => correct.includes(val)) &&
+                          correct.every(val => selected.includes(val));
+
+        let correctTexts = [];
+
+        if (isCorrect) {
+          feedback.textContent = '✅ Správně!';
+          feedback.className = 'feedback correct';
+        } else {
+          errorCount++;
+          errorCountDisplay.textContent = errorCount;
+
+          correctTexts = item.shuffledOptions
+            .filter(opt => correct.includes(opt.label))
+            .map(opt => opt.text);
+
+          feedback.textContent = `❌ Špatně. Správná odpověď: ${correctTexts.join(', ')}`;
+          feedback.className = 'feedback incorrect';
+
+          // Zařadit otázku znovu do fronty po "retryDelay" otázkách
+          const insertIndex = Math.min(retryDelay, questionQueue.length);
+          questionQueue.splice(insertIndex, 0, questionIndex);
+        }
+
+        current++;
+
+        const delay = getDynamicDelay(isCorrect, correctTexts);
+        setTimeout(showQuestion, delay);
+      };
     }
 
-    function getDynamicDelay(correct, correctAnswers) {
-      if (correct) return 1000;
-      const text = correctAnswers.join(', ');
+    // Dynamická prodleva podle délky správné odpovědi (v ms)
+    function getDynamicDelay(isCorrect, correctTexts) {
+      if (isCorrect) return 1000; // krátký delay u správné odpovědi
+
+      const text = correctTexts.join(', ');
       const length = text.length;
+
       if (length <= 20) return 2000;
       if (length <= 40) return 3000;
       return 4000;
     }
-
-    checkBtn.addEventListener('click', () => {
-      const selected = Array.from(optionsDiv.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value);
-      if (selected.length === 0) return;
-
-      const item = quiz[current];
-      const isCorrect = selected.length === item.correct.length &&
-                        selected.every(val => item.correct.includes(val));
-
-      if (isCorrect) {
-        feedback.textContent = '✅ Správně!';
-        feedback.className = 'feedback correct';
-      } else {
-        errorCount++;
-        errorCountDisplay.textContent = errorCount;
-
-        const correctTexts = item.shuffledOptions
-          .filter(opt => item.correct.includes(opt.label))
-          .map(opt => opt.text);
-
-        feedback.textContent = `❌ Špatně. Správná odpověď: ${correctTexts.join(', ')}`;
-        feedback.className = 'feedback incorrect';
-
-        const insertIndex = Math.min(retryDelay, questionQueue.length);
-        questionQueue.splice(insertIndex, 0, current);
-      }
-
-      checkBtn.disabled = true;
-
-      const delay = getDynamicDelay(isCorrect, item.correct.map(l => {
-        return item.shuffledOptions.find(opt => opt.label === l)?.text || '';
-      }));
-
-      setTimeout(() => {
-        checkBtn.disabled = false;
-        showQuestion();
-      }, delay);
-    });
   </script>
 </body>
 </html>
