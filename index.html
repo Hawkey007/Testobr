@@ -99,6 +99,11 @@
     #checkBtn:hover {
       background-color: #1976d2;
     }
+    #imageContainer img {
+      max-width: 100%;
+      border-radius: 6px;
+      border: 1px solid #333;
+    }
   </style>
 </head>
 <body>
@@ -129,6 +134,11 @@
 
   <div id="quizContainer" style="display:none;">
     <div class="question" id="qText"></div>
+
+    <div id="imageContainer" style="text-align:center; margin: 10px 0;">
+      <img id="questionImage" src="" alt="Obrázek k otázce" style="display:none;" />
+    </div>
+
     <div id="options"></div>
     <div class="feedback" id="feedback"></div>
     <button id="checkBtn">Ověřit</button>
@@ -152,6 +162,7 @@
     const checkBtn = document.getElementById('checkBtn');
     const feedback = document.getElementById('feedback');
     const errorCountDisplay = document.getElementById('errorCount');
+    const questionImage = document.getElementById('questionImage');
 
     function shuffleArray(array) {
       return array
@@ -167,8 +178,9 @@
       readXlsxFile(file).then(rows => {
         quiz = rows.slice(1).map(r => ({
           question: r[0],
-          options: [r[1], r[2], r[3]].filter(Boolean),
-          correct: r[4] ? r[4].split(/[ ,]+/).map(s => s.trim().toUpperCase()) : [],
+          image: r[1], // název obrázku bez přípony
+          options: [r[2], r[3], r[4]].filter(Boolean),
+          correct: r[5] ? r[5].split(/[ ,]+/).map(s => s.trim().toUpperCase()) : [],
           attempts: 0
         }));
 
@@ -210,6 +222,7 @@
 
       if (quiz.length === 0 || questionQueue.length === 0) {
         qText.innerText = '🎉 Test dokončen!';
+        questionImage.style.display = 'none';
         checkBtn.disabled = true;
         return;
       }
@@ -217,6 +230,14 @@
       const questionIndex = questionQueue.shift();
       const item = quiz[questionIndex];
       qText.innerText = item.question;
+
+      // Zobraz obrázek, pokud existuje
+      if (item.image) {
+        questionImage.src = `obrazky/${item.image}.png`;
+        questionImage.style.display = 'block';
+      } else {
+        questionImage.style.display = 'none';
+      }
 
       const labeledOptions = item.options.map((text, i) => ({
         label: String.fromCharCode(65 + i),
@@ -299,4 +320,3 @@
   </script>
 </body>
 </html>
-
