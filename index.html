@@ -237,21 +237,28 @@
         questionImage.style.display = 'block';
       }
 
-      item.options.forEach((opt, idx) => {
+      const labeledOptions = item.options.map((opt, idx) => ({
+        label: String.fromCharCode(65 + idx),
+        text: opt
+      }));
+
+      const randomized = shuffleArray(labeledOptions);
+
+      randomized.forEach(opt => {
         const option = document.createElement('label');
         option.className = 'option';
         option.innerHTML = `
-          <input type="radio" name="option" value="${String.fromCharCode(65 + idx)}">
-          <span>${opt}</span>
+          <input type="radio" name="option" value="${opt.label}">
+          <span>${opt.text}</span>
         `;
         optionsDiv.appendChild(option);
       });
     }
 
-    function getDynamicDelay(isCorrect, correctAnswers) {
-      if (isCorrect) return 1000;
-      const correctText = correctAnswers.join(', ');
-      const length = correctText.length;
+    function getDynamicDelay(correct, correctAnswers) {
+      if (correct) return 1000;
+      const text = correctAnswers.join(', ');
+      const length = text.length;
       if (length <= 20) return 2000;
       if (length <= 40) return 3000;
       return 4000;
