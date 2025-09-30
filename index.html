@@ -276,7 +276,8 @@
         feedback.textContent = 'Správně!';
         feedback.className = 'feedback correct';
       } else {
-        feedback.textContent = `Špatně: Správně je ${item.correct.join(', ')}`;
+        feedback.textContent = `❌ Špatně. Správná odpověď: ${correctTexts.join(', ')}`;
+        /*feedback.textContent = `Špatně: Správně je ${item.correct.join(', ')}`;*/
         feedback.className = 'feedback incorrect';
         errorCount++;
         errorCountDisplay.textContent = errorCount;
@@ -294,3 +295,4 @@
   </script>
 </body>
 </html>
+
