@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>TestObr</title>
+  <title>Testomat</title>
   <link rel="icon" href="favicon.png" type="image/png" />
   <script src="https://unpkg.com/read-excel-file@5.x/bundle/read-excel-file.min.js"></script>
   <style>
@@ -34,41 +34,41 @@
     #resetBtn {
       background-color: #757575;
     }
-    .modes {
+    .modes-container {
       display: flex;
-      flex-wrap: wrap;
       justify-content: space-between;
+      flex-wrap: wrap;
       gap: 20px;
       margin-bottom: 15px;
     }
     .mode-section {
       flex: 1 1 300px;
     }
+    .mode-options {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
     .mode-section h2 {
       font-size: 18px;
       margin-bottom: 6px;
     }
-    .radio-group {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin-top: 5px;
-    }
-    .radio-group label {
+    .mode-options label {
+      font-size: 16px;
       display: flex;
       align-items: center;
-      gap: 6px;
-      background-color: #1e1e1e;
-      padding: 8px 12px;
-      border-radius: 6px;
-      border: 1px solid #444;
-      font-size: 16px;
-      cursor: pointer;
+      gap: 5px;
     }
     .question {
       font-size: 20px;
       font-weight: bold;
       margin: 20px 0 10px 0;
+    }
+    .question img {
+      max-width: 100%;
+      margin-top: 10px;
+      border-radius: 6px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.7);
     }
     .option {
       display: flex;
@@ -115,7 +115,7 @@
   </style>
 </head>
 <body>
-  <h1>TestObr</h1>
+  <h1>Testomat</h1>
 
   <div class="top-bar">
     <label for="fileInput" class="upload-btn">📂 Vybrat soubor</label>
@@ -123,17 +123,17 @@
   </div>
   <input type="file" id="fileInput" accept=".xlsx" style="display: none;" />
 
-  <div class="modes">
+  <div class="modes-container">
     <div class="mode-section">
       <h2>Režim testu</h2>
-      <div class="radio-group">
+      <div class="mode-options">
         <label><input type="radio" name="mode" value="infinite" checked onchange="switchMode('infinite')"> Nekonečný</label>
         <label><input type="radio" name="mode" value="rated" onchange="switchMode('rated')"> Hodnocený</label>
       </div>
     </div>
     <div class="mode-section">
       <h2>Režim otázek</h2>
-      <div class="radio-group">
+      <div class="mode-options">
         <label><input type="radio" name="questionOrder" value="random" checked onchange="switchQuestionOrder('random')"> Náhodné</label>
         <label><input type="radio" name="questionOrder" value="sequential" onchange="switchQuestionOrder('sequential')"> Za sebou</label>
       </div>
@@ -162,6 +162,9 @@
 
     const retryDelay = 2;
 
+    // Upravte URL na váš GitHub repozitář a složku s obrázky
+    const githubImageBaseUrl = 'https://raw.githubusercontent.com/uzivatel/repozitar/main/obrazky/';
+
     const fileInput = document.getElementById('fileInput');
     const quizContainer = document.getElementById('quizContainer');
     const qText = document.getElementById('qText');
@@ -181,14 +184,18 @@
       if (!file) return;
 
       readXlsxFile(file).then(rows => {
+        // Předpokládám, že Excel má tyto sloupce:
+        // A - otázka (text), B - název obrázku, C, D, E - možnosti, F - správné odpovědi
         quiz = rows.slice(1).map(r => ({
-          question: r[0],
-          options: [r[1], r[2], r[3]].filter(Boolean),
-          correct: r[4] ? r[4].split(/[ ,]+/).map(s => s.trim().toUpperCase()) : [],
+          questionText: r[0],         // text otázky
+          imageName: r[1],            // název obrázku, např. "obrazek1.jpg"
+          options: [r[2], r[3], r[4]].filter(Boolean),  // možnosti (max 3)
+          correct: r[5] ? r[5].split(/[ ,]+/).map(s => s.trim().toUpperCase()) : [],
           attempts: 0
         }));
 
-        questionOrderMode = document.querySelector('input[name="questionOrder"]:checked').value;
+        const selectedOrder = document.querySelector('input[name="questionOrder"]:checked').value;
+        questionOrderMode = selectedOrder;
 
         resetAll();
         quizContainer.style.display = '';
@@ -225,7 +232,7 @@
       optionsDiv.innerHTML = '';
 
       if (quiz.length === 0 || questionQueue.length === 0) {
-        qText.innerHTML = '🎉 Test dokončen!';
+        qText.innerText = '🎉 Test dokončen!';
         checkBtn.disabled = true;
         return;
       }
@@ -233,14 +240,22 @@
       const questionIndex = questionQueue.shift();
       const item = quiz[questionIndex];
 
-      // ✅ Zobraz otázku včetně HTML (např. <img>)
-      qText.innerHTML = item.question;
+      // Sestavíme otázku jako text + obrázek (pokud je zadán)
+      let questionHtml = item.questionText || '';
+
+      if (item.imageName) {
+        const imageUrl = githubImageBaseUrl + encodeURIComponent(item.imageName);
+        questionHtml += `<br><img src="${imageUrl}" alt="Obrázek k otázce" />`;
+      }
+
+      qText.innerHTML = questionHtml;
 
       const labeledOptions = item.options.map((text, i) => ({
         label: String.fromCharCode(65 + i),
         text: text
       }));
 
+      // Zamícháme možnosti, aby nebyly pořád ve stejném pořadí
       const shuffled = shuffleArray(labeledOptions);
       item.shuffledOptions = shuffled;
 
@@ -256,8 +271,7 @@
 
         const label = document.createElement('label');
         label.setAttribute('for', id);
-        // ✅ Podpora HTML v odpovědích (např. <img>)
-        label.innerHTML = opt.text;
+        label.textContent = opt.text;
 
         wrapper.appendChild(checkbox);
         wrapper.appendChild(label);
@@ -289,12 +303,14 @@
             .filter(opt => correct.includes(opt.label))
             .map(opt => opt.text);
 
-          feedback.innerHTML = `❌ Špatně. Správná odpověď: ${correctTexts.join(', ')}`;
+          feedback.textContent = `❌ Špatně. Správná odpověď: ${correctTexts.join(', ')}`;
           feedback.className = 'feedback incorrect';
 
-          // Znovuzařazení otázky do fronty po "retryDelay" otázkách
-          const insertIndex = Math.min(retryDelay, questionQueue.length);
-          questionQueue.splice(insertIndex, 0, questionIndex);
+          // V režimu nekonečného testu vrátíme otázku na pozici podle retryDelay
+          if (mode === 'infinite') {
+            const insertIndex = Math.min(retryDelay, questionQueue.length);
+            questionQueue.splice(insertIndex, 0, questionIndex);
+          }
         }
 
         current++;
@@ -304,13 +320,10 @@
       };
     }
 
-    // Dynamický delay podle délky správné odpovědi (v ms)
     function getDynamicDelay(isCorrect, correctTexts) {
       if (isCorrect) return 1000;
-
       const text = correctTexts.join(', ');
       const length = text.length;
-
       if (length <= 20) return 2000;
       if (length <= 40) return 3000;
       return 4000;
@@ -318,4 +331,3 @@
   </script>
 </body>
 </html>
-
