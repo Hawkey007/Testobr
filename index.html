@@ -291,17 +291,18 @@
           questionQueue.splice(insertIndex, 0, questionIndex);
         }
 
-      checkBtn.disabled = true;
+      /*checkBtn.disabled = true;*/
 
       const delay = getDynamicDelay(isCorrect, item.correct);
 
       setTimeout(() => {
-        checkBtn.disabled = false;
+        /*checkBtn.disabled = false;*/
         showQuestion();
       }, delay);
     });
   </script>
 </body>
 </html>
+
 
 
