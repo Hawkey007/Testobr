@@ -35,7 +35,6 @@
       background-color: #757575;
     }
 
-    /* === řádek pro počet řádků + počet chyb (zcela shodné jako v první app) === */
     .row-settings {
       display: flex;
       justify-content: space-between;
@@ -147,7 +146,6 @@
   </div>
   <input type="file" id="fileInput" accept=".xlsx" style="display: none;" />
 
-  <!-- === nový blok – POČET ŘÁDKŮ + POČET CHYB === -->
   <div class="row-settings">
     <div>
       <label for="usedRowsInput"><strong>Počet použitých řádků:</strong></label>
@@ -361,7 +359,9 @@
 
           if (mode === 'infinite') {
             const idx = Math.min(retryDelay, questionQueue.length);
-            questionQueue.splice(idx, 0, qIndex);
+            if (!questionQueue.includes(qIndex)) {
+              questionQueue.splice(idx, 0, qIndex);
+            }
           }
         }
 
