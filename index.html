@@ -34,6 +34,25 @@
     #resetBtn {
       background-color: #757575;
     }
+
+    /* === řádek pro počet řádků + počet chyb (zcela shodné jako v první app) === */
+    .row-settings {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 10px;
+      margin-bottom: 15px;
+    }
+    .row-settings input {
+      width: 100px;
+      padding: 6px;
+      font-size: 16px;
+      border-radius: 4px;
+      border: 1px solid #444;
+      background-color: #1e1e1e;
+      color: #fff;
+    }
+
     .modes-container {
       display: flex;
       justify-content: space-between;
@@ -59,6 +78,7 @@
       align-items: center;
       gap: 5px;
     }
+
     .question {
       font-size: 20px;
       font-weight: bold;
@@ -116,18 +136,6 @@
     #checkBtn:hover {
       background-color: #1976d2;
     }
-
-    /* ★ NOVÉ – styl pro input s řádky */
-    #usedRowsInput {
-      width: 90px;
-      padding: 6px;
-      margin-bottom: 10px;
-      background-color: #1e1e1e;
-      border: 1px solid #444;
-      border-radius: 6px;
-      color: white;
-      font-size: 16px;
-    }
   </style>
 </head>
 <body>
@@ -139,14 +147,15 @@
   </div>
   <input type="file" id="fileInput" accept=".xlsx" style="display: none;" />
 
-  <!-- ★ NOVÉ — počet použitých řádků -->
-  <div style="margin-bottom: 15px;">
-    <label><strong>Počet použitých řádků:</strong></label>
-    <input id="usedRowsInput" type="number" min="1" value="1" />
-  </div>
-
-  <div style="margin-bottom: 10px;">
-    <strong>Počet chyb:</strong> <span id="errorCount">0</span>
+  <!-- === nový blok – POČET ŘÁDKŮ + POČET CHYB === -->
+  <div class="row-settings">
+    <div>
+      <label for="usedRowsInput"><strong>Počet použitých řádků:</strong></label>
+      <input id="usedRowsInput" type="number" min="1" value="1">
+    </div>
+    <div>
+      <strong>Počet chyb:</strong> <span id="errorCount">0</span>
+    </div>
   </div>
 
   <div class="modes-container">
@@ -174,7 +183,7 @@
   </div>
 
   <script>
-    let allRowsLoaded = [];      // ★ NOVÉ
+    let allRowsLoaded = [];
     let quiz = [];
     let questionOrder = [];
     let questionQueue = [];
@@ -193,13 +202,12 @@
     const checkBtn = document.getElementById('checkBtn');
     const feedback = document.getElementById('feedback');
     const errorCountDisplay = document.getElementById('errorCount');
-    const usedRowsInput = document.getElementById('usedRowsInput'); // ★ NOVÉ
+    const usedRowsInput = document.getElementById('usedRowsInput');
 
     function shuffleArray(array) {
-      return array
-        .map(value => ({ value, sort: Math.random() }))
-        .sort((a, b) => a.sort - b.sort)
-        .map(({ value }) => value);
+      return array.map(v => ({ v, sort: Math.random() }))
+                  .sort((a, b) => a.sort - b.sort)
+                  .map(o => o.v);
     }
 
     fileInput.addEventListener('change', () => {
@@ -207,32 +215,31 @@
       if (!file) return;
 
       readXlsxFile(file).then(rows => {
-        allRowsLoaded = rows; // ★ NOVÉ
+        allRowsLoaded = rows;
 
         const maxRows = rows.length - 1;
         usedRowsInput.max = maxRows;
         usedRowsInput.value = maxRows;
 
-        rebuildQuizAccordingToLimit(); // ★ NOVÉ
+        rebuildQuizAccordingToLimit();
         resetAll();
         quizContainer.style.display = '';
       });
     });
 
-    // ★ NOVÉ — funkce pro omezení počtu načtených řádků
     function rebuildQuizAccordingToLimit() {
       if (!allRowsLoaded.length) return;
 
       const rows = allRowsLoaded;
       const maxRows = rows.length - 1;
-      let usedRows = parseInt(usedRowsInput.value);
+      let used = parseInt(usedRowsInput.value);
 
-      if (isNaN(usedRows) || usedRows <= 0) usedRows = maxRows;
-      if (usedRows > maxRows) usedRows = maxRows;
+      if (isNaN(used) || used <= 0) used = maxRows;
+      if (used > maxRows) used = maxRows;
 
-      usedRowsInput.value = usedRows;
+      usedRowsInput.value = used;
 
-      quiz = rows.slice(1, 1 + usedRows).map(r => ({
+      quiz = rows.slice(1, 1 + used).map(r => ({
         questionText: r[0],
         imageName: r[1],
         options: [r[2], r[3], r[4]].filter(Boolean),
@@ -242,24 +249,24 @@
 
     usedRowsInput.addEventListener('change', () => {
       rebuildQuizAccordingToLimit();
-      resetAll(); // ★ nový reset kvůli novému setu otázek
+      resetAll();
     });
 
-    function switchMode(selectedMode) {
-      mode = selectedMode;
+    function switchMode(m) {
+      mode = m;
       resetAll();
     }
-
-    function switchQuestionOrder(selectedOrder) {
-      questionOrderMode = selectedOrder;
+    function switchQuestionOrder(o) {
+      questionOrderMode = o;
       resetAll();
     }
 
     function resetAll() {
       errorCount = 0;
-      errorCountDisplay.textContent = errorCount;
+      errorCountDisplay.textContent = 0;
       current = 0;
       feedback.textContent = '';
+      checkBtn.disabled = false;
 
       questionOrder =
         questionOrderMode === 'sequential'
@@ -267,8 +274,6 @@
           : shuffleArray([...Array(quiz.length).keys()]);
 
       questionQueue = [...questionOrder];
-      checkBtn.disabled = false;
-
       showQuestion();
     }
 
@@ -276,7 +281,6 @@
       feedback.textContent = '';
       optionsDiv.innerHTML = '';
 
-      // ★ Upraveno — infinite režim se NIKDY neukončí
       if (questionQueue.length === 0) {
         if (mode === 'infinite') {
           resetAll();
@@ -288,43 +292,43 @@
         }
       }
 
-      const questionIndex = questionQueue.shift();
-      const item = quiz[questionIndex];
+      const qIndex = questionQueue.shift();
+      const item = quiz[qIndex];
 
-      let questionHtml = item.questionText || '';
+      let html = item.questionText || '';
 
       if (item.imageName) {
-        const imageUrl = imageFolder + encodeURIComponent(item.imageName) + '.png';
-        questionHtml += `<br><img src="${imageUrl}" alt="Obrázek k otázce" />`;
+        const img = imageFolder + encodeURIComponent(item.imageName) + '.png';
+        html += `<br><img src="${img}" alt="Obrázek k otázce">`;
       }
 
-      qText.innerHTML = questionHtml;
+      qText.innerHTML = html;
 
-      const labeledOptions = item.options.map((text, i) => ({
+      const labeled = item.options.map((t, i) => ({
         label: String.fromCharCode(65 + i),
-        text
+        text: t
       }));
 
-      const shuffled = shuffleArray(labeledOptions);
+      const shuffled = shuffleArray(labeled);
       item.shuffledOptions = shuffled;
 
-      shuffled.forEach((opt, idx) => {
-        const id = `option-${current}-${idx}`;
-        const wrapper = document.createElement('div');
-        wrapper.className = 'option';
+      shuffled.forEach((opt, i) => {
+        const id = `opt-${current}-${i}`;
+        const wrap = document.createElement('div');
+        wrap.className = 'option';
 
-        const checkbox = document.createElement('input');
-        checkbox.type = 'checkbox';
-        checkbox.value = opt.label;
-        checkbox.id = id;
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.value = opt.label;
+        cb.id = id;
 
-        const label = document.createElement('label');
-        label.setAttribute('for', id);
-        label.textContent = opt.text;
+        const lab = document.createElement('label');
+        lab.setAttribute('for', id);
+        lab.textContent = opt.text;
 
-        wrapper.appendChild(checkbox);
-        wrapper.appendChild(label);
-        optionsDiv.appendChild(wrapper);
+        wrap.appendChild(cb);
+        wrap.appendChild(lab);
+        optionsDiv.appendChild(wrap);
       });
 
       checkBtn.disabled = false;
@@ -332,12 +336,12 @@
       checkBtn.onclick = () => {
         checkBtn.disabled = true;
 
-        const selected = Array.from(optionsDiv.querySelectorAll('input:checked')).map(cb => cb.value);
+        const selected = [...optionsDiv.querySelectorAll('input:checked')].map(c => c.value);
         const correct = item.correct;
 
         const isCorrect =
           selected.length === correct.length &&
-          selected.every(v => correct.includes(v));
+          selected.every(x => correct.includes(x));
 
         let correctTexts = [];
 
@@ -349,27 +353,26 @@
           errorCountDisplay.textContent = errorCount;
 
           correctTexts = item.shuffledOptions
-            .filter(opt => correct.includes(opt.label))
-            .map(opt => opt.text);
+            .filter(o => correct.includes(o.label))
+            .map(o => o.text);
 
           feedback.textContent = `❌ Špatně. Správná odpověď: ${correctTexts.join(', ')}`;
           feedback.className = 'feedback incorrect';
 
           if (mode === 'infinite') {
-            const insertIndex = Math.min(retryDelay, questionQueue.length);
-            questionQueue.splice(insertIndex, 0, questionIndex);
+            const idx = Math.min(retryDelay, questionQueue.length);
+            questionQueue.splice(idx, 0, qIndex);
           }
         }
 
         current++;
-
         setTimeout(showQuestion, getDynamicDelay(isCorrect, correctTexts));
       };
     }
 
-    function getDynamicDelay(isCorrect, correctTexts) {
-      if (isCorrect) return 1000;
-      const len = correctTexts.join(', ').length;
+    function getDynamicDelay(correct, texts) {
+      if (correct) return 1000;
+      const len = texts.join(', ').length;
       if (len <= 20) return 2000;
       if (len <= 40) return 3000;
       return 4000;
