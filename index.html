@@ -259,6 +259,15 @@
       resetAll();
     }
 
+    function resetQuestionQueue() {
+      questionOrder =
+        questionOrderMode === 'sequential'
+          ? [...Array(quiz.length).keys()]
+          : shuffleArray([...Array(quiz.length).keys()]);
+
+      questionQueue = [...questionOrder];
+    }
+
     function resetAll() {
       errorCount = 0;
       errorCountDisplay.textContent = 0;
@@ -266,12 +275,7 @@
       feedback.textContent = '';
       checkBtn.disabled = false;
 
-      questionOrder =
-        questionOrderMode === 'sequential'
-          ? [...Array(quiz.length).keys()]
-          : shuffleArray([...Array(quiz.length).keys()]);
-
-      questionQueue = [...questionOrder];
+      resetQuestionQueue();
       showQuestion();
     }
 
@@ -279,10 +283,10 @@
       feedback.textContent = '';
       optionsDiv.innerHTML = '';
 
+      // ⭐ OPRAVA — Nekonečný režim se nesmí ukončit
       if (questionQueue.length === 0) {
         if (mode === 'infinite') {
-          resetAll();
-          return;
+          resetQuestionQueue();   // NE celý resetAll() !!
         } else {
           qText.innerHTML = '🎉 Test dokončen!';
           checkBtn.disabled = true;
@@ -357,10 +361,11 @@
           feedback.textContent = `❌ Špatně. Správná odpověď: ${correctTexts.join(', ')}`;
           feedback.className = 'feedback incorrect';
 
+          // ⭐ OPRAVA – bezpečné vrácení otázky zpět
           if (mode === 'infinite') {
-            const idx = Math.min(retryDelay, questionQueue.length);
+            const insertAt = Math.min(retryDelay, questionQueue.length);
             if (!questionQueue.includes(qIndex)) {
-              questionQueue.splice(idx, 0, qIndex);
+              questionQueue.splice(insertAt, 0, qIndex);
             }
           }
         }
